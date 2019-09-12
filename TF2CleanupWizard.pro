@@ -17,10 +17,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     intropage.cpp \
-    main.cpp
+    main.cpp \
+    selectuserpage.cpp \
+    steampathpage.cpp \
+    tf2pathpage.cpp
 
 HEADERS += \
-    intropage.h
+    intropage.h \
+    pageids.h \
+    selectuserpage.h \
+    steampathpage.h \
+    tf2pathpage.h
 
 FORMS +=
 
