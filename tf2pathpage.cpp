@@ -11,14 +11,12 @@ TF2PathPage::TF2PathPage(QWidget *parent) : QWizardPage(parent)
 {
     setTitle("Select TF2 Path");
 
-    QLabel *label = new QLabel("Please select your Steam installation directory:", this);
+    QLabel *label = new QLabel("Please select your TF2 installation directory:", this);
 
     cbDirectory = new QComboBox(this);
     cbDirectory->setEditable(true);
     cbDirectory->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    registerField("pathTF2", cbDirectory, "currentText", SIGNAL(currentTextChanged(QString)));
-    connect(cbDirectory, &QComboBox::currentTextChanged, this, &QWizardPage::completeChanged);
-    connect(cbDirectory, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &QWizardPage::completeChanged);
+    registerField("pathTF2*", cbDirectory, "currentText", SIGNAL(currentTextChanged(QString)));
 
     QPushButton *button = new QPushButton("&Browse...", this);
     connect(button, &QPushButton::clicked, this, &TF2PathPage::browse);
@@ -54,7 +52,11 @@ void TF2PathPage::browse()
 bool TF2PathPage::isComplete() const
 {
     QString chk = QDir::toNativeSeparators(cbDirectory->currentText());
-    if (chk.isEmpty())
+    if (chk.isEmpty()) {
         return false;
-    return QDir(chk).exists();
+    }
+    if (!QDir(chk).exists()) {
+        return false;
+    }
+    return QDir(QDir::toNativeSeparators(chk + "/tf")).exists();
 }

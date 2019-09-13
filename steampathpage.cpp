@@ -16,8 +16,7 @@ SteamPathPage::SteamPathPage(QWidget *parent) : QWizardPage(parent)
     cbDirectory = new QComboBox(this);
     cbDirectory->setEditable(true);
     cbDirectory->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    registerField("pathSteam", cbDirectory, "currentText", SIGNAL(currentTextChanged(QString)));
-
+    registerField("pathSteam*", cbDirectory, "currentText", SIGNAL(currentTextChanged(QString)));
 
     QPushButton *button = new QPushButton("&Browse...", this);
     connect(button, &QPushButton::clicked, this, &SteamPathPage::browse);

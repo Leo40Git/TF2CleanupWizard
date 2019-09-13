@@ -16,6 +16,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    htmldelegate.cpp \
     intropage.cpp \
     main.cpp \
     selectuserpage.cpp \
@@ -23,6 +24,7 @@ SOURCES += \
     tf2pathpage.cpp
 
 HEADERS += \
+    htmldelegate.h \
     intropage.h \
     pageids.h \
     selectuserpage.h \
