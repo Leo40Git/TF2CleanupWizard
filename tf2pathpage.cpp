@@ -58,5 +58,7 @@ bool TF2PathPage::isComplete() const
     if (!QDir(chk).exists()) {
         return false;
     }
-    return QDir(QDir::toNativeSeparators(chk + "/tf")).exists();
+    if (!QDir(QDir::toNativeSeparators(chk + "/tf/custom")).exists())
+        return false;
+    return QDir(QDir::toNativeSeparators(chk + "/tf/cfg")).exists();
 }

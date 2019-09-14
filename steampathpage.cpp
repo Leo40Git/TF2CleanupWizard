@@ -60,5 +60,7 @@ bool SteamPathPage::isComplete() const
     QString chk = QDir::toNativeSeparators(cbDirectory->currentText());
     if (chk.isEmpty())
         return false;
-    return QDir(chk).exists();
+    if (!QDir(chk).exists())
+        return false;
+    return QDir(QDir::toNativeSeparators(chk + "/config")).exists();
 }

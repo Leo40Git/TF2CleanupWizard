@@ -25,10 +25,11 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
 
 void SelectUserPage::initializePage()
 {
+    lvAccounts->setItemDelegate(new HTMLDelegate);
+    // TODO VDF parse ($pathSteam/config/loginusers.vdf)
     QStandardItemModel *model = new QStandardItemModel(this);
     model->appendRow(new QStandardItem("<b>Leo40Gamer</b><br><i>kfir40gamer</i>"));
     lvAccounts->setModel(model);
-    lvAccounts->setItemDelegate(new HTMLDelegate);
 }
 
 bool SelectUserPage::isComplete() const
