@@ -16,22 +16,28 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    cleanupdialog.cpp \
+    cleanupwizard.cpp \
     htmldelegate.cpp \
     intropage.cpp \
     main.cpp \
     selectuserpage.cpp \
     steampathpage.cpp \
-    tf2pathpage.cpp
+    tf2pathpage.cpp \
+    warningpage.cpp
 
 HEADERS += \
+    cleanupdialog.h \
+    cleanupwizard.h \
     htmldelegate.h \
     intropage.h \
-    pageids.h \
     selectuserpage.h \
     steampathpage.h \
-    tf2pathpage.h
+    tf2pathpage.h \
+    warningpage.h
 
-FORMS +=
+FORMS += \
+    cleanupdialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -3,6 +3,11 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QStandardItemModel>
+#include <QFile>
+#include <QDir>
+#include <QMessageBox>
+#include <QApplication>
+#include <QIcon>
 
 #include "htmldelegate.h"
 
@@ -16,7 +21,8 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
 
     lvAccounts = new QListView(this);
     lvAccounts->setEditTriggers(QListView::NoEditTriggers);
-    setField("accountID", 0ull); // accountID format is steamID64 (aka uint64)
+    lvAccounts->setIconSize(QSize(32, 32));
+    registerField("accountID*", this, "accountID", SIGNAL(accountIDChanged()));
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(label);
@@ -25,14 +31,79 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
 
 void SelectUserPage::initializePage()
 {
-    lvAccounts->setItemDelegate(new HTMLDelegate);
-    // TODO VDF parse ($pathSteam/config/loginusers.vdf)
+    accountIDSet = false;
     QStandardItemModel *model = new QStandardItemModel(this);
-    model->appendRow(new QStandardItem("<b>Leo40Gamer</b><br><i>kfir40gamer</i>"));
+    // parse $pathSteam/config/loginusers.vdf
+    QFile userVDF(QDir::toNativeSeparators(field("pathSteam").toString() + "/config/loginusers.vdf"));
+    if (!userVDF.open(QFile::ReadOnly | QFile::Text))
+        parseErrorAndQuit(userVDF.fileName(), "Could not open file for reading");
+    QString line;
+    line = userVDF.readLine().chopped(1);
+    if (QString::compare("\"users\"", line) != 0) {
+        parseErrorAndQuit(userVDF.fileName(), "Missing \"users\" key");
+        return;
+    }
+    line = userVDF.readLine().chopped(1);
+    if (QString::compare("{", line) != 0) {
+        parseErrorAndQuit(userVDF.fileName(), "Missing opening bracket");
+        return;
+    }
+    QStandardItem *item = nullptr;
+    QModelIndex mostRecentIndex;
+    while (QString::compare("}", (line = userVDF.readLine().chopped(1))) != 0) {
+        if (userVDF.atEnd()) {
+            userVDF.close();
+            parseErrorAndQuit(userVDF.fileName(), "Missing closing bracket");
+            return;
+        }
+        if (!item) {
+            // line is new account declaration
+            quint64 id = static_cast<quint64>(line.mid(2).chopped(1).toULongLong()); // strips \t" at start, " at end
+            item = new QStandardItem();
+            item->setData(id, Qt::UserRole + 1);
+            model->appendRow(item);
+        } else if (line.startsWith("\t\t\"PersonaName\"\t\t")) {
+            // line is persona name
+            item->setData(line.mid(18).chopped(1), Qt::UserRole + 2);
+        } else if (line.startsWith("\t\t\"AccountName\"\t\t")) {
+            // line is account name
+            item->setData(line.mid(18).chopped(1), Qt::UserRole + 3);
+        } else if (line.startsWith("\t\t\"mostrecent\"\t\t")) {
+            // line is most recent
+            if (QString::compare("1", line.mid(16).chopped(1)))
+                mostRecentIndex = model->indexFromItem(item);
+        } else if (QString::compare("\t}", line) == 0) {
+            // line is end of account declaration
+            item->setText(QString("<b>%1</b><br><i>%2</i>").arg(item->data(Qt::UserRole + 2).toString()).arg(item->data(Qt::UserRole + 3).toString()));
+            item->setIcon(QIcon(QDir::toNativeSeparators(field("pathSteam").toString() + "/config/avatarcache/" + QString::number(item->data(Qt::UserRole + 1).toULongLong()))));
+            item = nullptr;
+        }
+    }
+    userVDF.close();
     lvAccounts->setModel(model);
+    connect(lvAccounts->selectionModel(), &QItemSelectionModel::currentChanged, this, &SelectUserPage::accountSelected);
+    if (mostRecentIndex.isValid()) {
+        lvAccounts->setCurrentIndex(mostRecentIndex);
+        lvAccounts->scrollTo(mostRecentIndex);
+    }
+    lvAccounts->setItemDelegate(new HTMLDelegate);
 }
 
 bool SelectUserPage::isComplete() const
 {
-    return gotAccount;
+    return accountIDSet;
+}
+
+void SelectUserPage::parseErrorAndQuit(const QString &path, const QString &error)
+{
+    QMessageBox::critical(this, "Failed to parse loginusers.vdf", "Could not parse \"" + path + "\":\n" + error + "\nInstaller will now close. No changes have been done.");
+    QApplication::quit();
+}
+
+void SelectUserPage::accountSelected(const QModelIndex &current, const QModelIndex &previous)
+{
+    (void)previous;
+    accountID = static_cast<quint64>(current.data(Qt::UserRole + 1).toULongLong());
+    accountIDSet = true;
+    emit accountIDChanged();
 }
