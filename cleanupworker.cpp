@@ -12,7 +12,6 @@
 #include "windows.h"
 #include "tlhelp32.h"
 #include "psapi.h"
-#include "shellapi.h"
 
 void CleanupWorker::doWork(const QString &pathSteam, const QString &pathTF2, quint64 steamID)
 {
@@ -178,7 +177,15 @@ void CleanupWorker::deleteFilesAndValidate()
     } else
         emit log(QString("directory \"%1\" does not exist").arg(dir_cfg.absolutePath()));
     emit log("- revalidating TF2 installation -");
-    QDesktopServices::openUrl(QUrl("steam://validate/440"));
+    if (QDesktopServices::openUrl(QUrl("steam://validate/440"))) {
+        emit log("failed to start validation");
+        emit log("please validate your game manually later");
+        emit setProgressLabel("...");
+        emit setProgressFormat("%v/%m");
+        emit setProgressMaximum(0);
+        emit setProgressValue(-1);
+        doWork2();
+    }
     emit log("waiting for validation progress window to open");
     while (!hValidWnd)
         EnumWindows(EnumWindowsCallback, 0);
@@ -268,11 +275,9 @@ void CleanupWorker::blankRemoteData()
 void CleanupWorker::launchWithCleanOptions()
 {
     emit log("launching game with the following launch options: \"-novid -autoconfig +host_writeconfig +mat_savechanges +quit\"");
-    //QDesktopServices::openUrl(QUrl("steam://run/440//-novid -autoconfig +host_writeconfig +mat_savechanges +quit"));
-    // Qt doesn't like the double slash inside the URL, so we gotta go native for this
-    quintptr err = reinterpret_cast<quintptr>(ShellExecuteA(nullptr, "open", "steam://run/440//-novid -autoconfig +host_writeconfig +mat_savechanges +quit", nullptr, nullptr, SW_HIDE));
-    if (err <= 32) {
-        emit log(QString("failed to launch game, ShellExecuteA, errcode 0x%1").arg(QString::number(err, 16).toUpper()));
+    if (!QDesktopServices::openUrl(QUrl("steam://run/440//-novid%20-autoconfig%20%2Bhost_writeconfig%20%2Bmat_savechanges%20%2Bquit"))) {
+        emit log("failed to open game");
+        emit log("please run the game manually with the above launch options.");
         return;
     }
     emit log("waiting for game to close");
