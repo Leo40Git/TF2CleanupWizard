@@ -22,7 +22,6 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
     lvAccounts = new QListView(this);
     lvAccounts->setEditTriggers(QListView::NoEditTriggers);
     lvAccounts->setIconSize(QSize(32, 32));
-    registerField("accountID*", this, "accountID", SIGNAL(accountIDChanged()));
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(label);
@@ -31,10 +30,10 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
 
 void SelectUserPage::initializePage()
 {
-    accountIDSet = false;
+    steamIDSet = false;
     QStandardItemModel *model = new QStandardItemModel(this);
     // parse $pathSteam/config/loginusers.vdf
-    QFile userVDF(QDir::toNativeSeparators(field("pathSteam").toString() + "/config/loginusers.vdf"));
+    QFile userVDF(field("pathSteam").toString() + "/config/loginusers.vdf");
     if (!userVDF.open(QFile::ReadOnly | QFile::Text))
         parseErrorAndQuit(userVDF.fileName(), "Could not open file for reading");
     QString line;
@@ -75,7 +74,7 @@ void SelectUserPage::initializePage()
         } else if (QString::compare("\t}", line) == 0) {
             // line is end of account declaration
             item->setText(QString("<b>%1</b><br><i>%2</i>").arg(item->data(Qt::UserRole + 2).toString()).arg(item->data(Qt::UserRole + 3).toString()));
-            item->setIcon(QIcon(QDir::toNativeSeparators(field("pathSteam").toString() + "/config/avatarcache/" + QString::number(item->data(Qt::UserRole + 1).toULongLong()))));
+            item->setIcon(QIcon(field("pathSteam").toString() + "/config/avatarcache/" + QString::number(item->data(Qt::UserRole + 1).toULongLong())));
             item = nullptr;
         }
     }
@@ -91,7 +90,7 @@ void SelectUserPage::initializePage()
 
 bool SelectUserPage::isComplete() const
 {
-    return accountIDSet;
+    return steamIDSet;
 }
 
 void SelectUserPage::parseErrorAndQuit(const QString &path, const QString &error)
@@ -103,7 +102,8 @@ void SelectUserPage::parseErrorAndQuit(const QString &path, const QString &error
 void SelectUserPage::accountSelected(const QModelIndex &current, const QModelIndex &previous)
 {
     (void)previous;
-    accountID = static_cast<quint64>(current.data(Qt::UserRole + 1).toULongLong());
-    accountIDSet = true;
-    emit accountIDChanged();
+    quint64 steamID = static_cast<quint64>(current.data(Qt::UserRole + 1).toULongLong());
+    wizard()->setProperty("steamID", steamID);
+    steamIDSet = true;
+    emit completeChanged();
 }

@@ -1,5 +1,6 @@
 #include "intropage.h"
 
+#include <QLabel>
 #include <QVBoxLayout>
 
 IntroPage::IntroPage(QWidget *parent) : QWizardPage(parent)
@@ -13,8 +14,9 @@ IntroPage::IntroPage(QWidget *parent) : QWizardPage(parent)
                        "performance/quality config, to reset any and all properties "
                        "that a previous config may have changed.<br><br>"
                        "<b>Please note</b> that after this wizard is finished, "
-                       "<i>all</i> of your settings will be reset to their default values, and "
-                       "<i>all</i> custom assets and configs you have installed will be removed.<br>"
+                       "<i>all</i> of your settings will be reset to their default values, including Steam Cloud data, "
+                       "and <i>all</i> custom assets and configs you have installed in "
+                       "<code>TF2_FOLDER/tf/custom</code> and <code>TF2_FOLDER/tf/cfg</code> will be removed.<br>"
                        "They will be moved to <code>TF2_FOLDER/tf/custom_backup</code> and "
                        "<code>TF2_FOLDER/tf/cfg_backup</code>, respectively.", this);
     label->setWordWrap(true);

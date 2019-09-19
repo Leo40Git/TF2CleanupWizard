@@ -5,6 +5,8 @@
 #include <QFile>
 #include <QPushButton>
 
+#include "cleanupworker.h"
+
 CleanupDialog::CleanupDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::CleanupDialog)
@@ -19,16 +21,30 @@ CleanupDialog::CleanupDialog(QWidget *parent) :
 CleanupDialog::~CleanupDialog()
 {
     delete ui;
+    workerThread.quit();
+    workerThread.wait();
 }
 
-void CleanupDialog::showEvent(QShowEvent *)
+void CleanupDialog::showEvent(QShowEvent *e)
 {
-    QString path_tf = QDir::toNativeSeparators(pathTF2 + "/tf");
-    QDir dir_tf(path_tf);
-    ui->pteLog->appendPlainText(QString("renaming \"%1\" to \"%1_backup\"").arg(QDir::toNativeSeparators(path_tf + "/custom")));
-    dir_tf.rename("custom", "custom_backup");
-    ui->pteLog->appendPlainText(QString("creating directory \"%1\"").arg(QDir::toNativeSeparators(path_tf + "/cfg_backup")));
-    dir_tf.mkdir("cfg_backup");
+    CleanupWorker *worker = new CleanupWorker;
+    worker->moveToThread(&workerThread);
+    connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(worker, &CleanupWorker::done, this, &CleanupDialog::onDone);
+    connect(worker, &CleanupWorker::log, ui->pteLog, &QPlainTextEdit::appendPlainText);
+    connect(worker, &CleanupWorker::setProgressLabel, ui->lblProgress, &QLabel::setText);
+    connect(worker, &CleanupWorker::setProgressValue, ui->progressBar, &QProgressBar::setValue);
+    connect(worker, &CleanupWorker::setProgressMaximum, ui->progressBar, &QProgressBar::setMaximum);
+    connect(worker, &CleanupWorker::setProgressFormat, ui->progressBar, &QProgressBar::setFormat);
+    connect(this, &CleanupDialog::doWork, worker, &CleanupWorker::doWork);
+    workerThread.start();
+    QDialog::showEvent(e);
+    emit doWork(pathSteam, pathTF2, steamID);
+}
+
+void CleanupDialog::onDone()
+{
+    ui->btnFinish->setEnabled(true);
 }
 
 void CleanupDialog::setPathSteam(const QString &pathSteam)

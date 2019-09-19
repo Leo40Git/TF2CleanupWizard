@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     cleanupdialog.cpp \
     cleanupwizard.cpp \
+    cleanupworker.cpp \
     htmldelegate.cpp \
     intropage.cpp \
     main.cpp \
@@ -29,6 +30,7 @@ SOURCES += \
 HEADERS += \
     cleanupdialog.h \
     cleanupwizard.h \
+    cleanupworker.h \
     htmldelegate.h \
     intropage.h \
     selectuserpage.h \
@@ -38,6 +40,8 @@ HEADERS += \
 
 FORMS += \
     cleanupdialog.ui
+
+win32: LIBS += -lpsapi
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

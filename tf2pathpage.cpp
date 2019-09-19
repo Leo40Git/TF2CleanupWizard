@@ -31,16 +31,14 @@ TF2PathPage::TF2PathPage(QWidget *parent) : QWizardPage(parent)
 
 void TF2PathPage::initializePage()
 {
-    QString defDir = field("pathSteam").toString();
-    defDir += "/steamapps/common/Team Fortress 2";
-    defDir = QDir::toNativeSeparators(defDir);
+    QString defDir = QString("%1/steamapps/common/Team Fortress 2").arg(field("pathSteam").toString());
     cbDirectory->addItem(defDir);
 }
 
 void TF2PathPage::browse()
 {
     QString directory =
-            QDir::toNativeSeparators(QFileDialog::getExistingDirectory(this, "", cbDirectory->currentText()));
+            QFileDialog::getExistingDirectory(this, "", cbDirectory->currentText());
 
     if (!directory.isEmpty()) {
         if (cbDirectory->findText(directory) == -1)
@@ -51,14 +49,9 @@ void TF2PathPage::browse()
 
 bool TF2PathPage::isComplete() const
 {
-    QString chk = QDir::toNativeSeparators(cbDirectory->currentText());
+    QString chk = cbDirectory->currentText();
     if (chk.isEmpty()) {
         return false;
     }
-    if (!QDir(chk).exists()) {
-        return false;
-    }
-    if (!QDir(QDir::toNativeSeparators(chk + "/tf/custom")).exists())
-        return false;
-    return QDir(QDir::toNativeSeparators(chk + "/tf/cfg")).exists();
+    return QDir(chk).exists();
 }

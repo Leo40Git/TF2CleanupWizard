@@ -2,7 +2,6 @@
 #define WARNINGPAGE_H
 
 #include <QWizardPage>
-#include <QLabel>
 
 class WarningPage : public QWizardPage
 {

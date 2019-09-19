@@ -17,10 +17,7 @@ private:
     void parseErrorAndQuit(const QString &path, const QString &error);
     void accountSelected(const QModelIndex &current, const QModelIndex &previous);
     QListView *lvAccounts;
-    quint64 accountID;
-    bool accountIDSet;
-signals:
-    void accountIDChanged();
+    bool steamIDSet;
 };
 
 #endif // SELECTUSERPAGE_H

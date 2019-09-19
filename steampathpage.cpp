@@ -34,19 +34,22 @@ void SteamPathPage::initializePage()
     QString defDir = "";
     // try to read install path from registry
     QSettings registry("HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Valve\\Steam", QSettings::NativeFormat);
-    defDir = QDir::toNativeSeparators(registry.value("InstallPath").toString());
+    defDir = registry.value("InstallPath").toString();
     if (defDir.isEmpty()) {
         // fallback (32-bit system)
         QSettings registry2("HKEY_LOCAL_MACHINE\\SOFTWARE\\Valve\\Steam", QSettings::NativeFormat);
-        defDir = QDir::toNativeSeparators(registry2.value("InstallPath").toString());
+        defDir = registry2.value("InstallPath").toString();
     }
-    if (!defDir.isEmpty()) cbDirectory->addItem(defDir);
+    if (!defDir.isEmpty()) {
+        defDir = defDir.replace('\\', '/');
+        cbDirectory->addItem(defDir);
+    }
 }
 
 void SteamPathPage::browse()
 {
     QString directory =
-            QDir::toNativeSeparators(QFileDialog::getExistingDirectory(this, "", cbDirectory->currentText()));
+            QFileDialog::getExistingDirectory(this, "", cbDirectory->currentText());
 
     if (!directory.isEmpty()) {
         if (cbDirectory->findText(directory) == -1)
@@ -57,10 +60,12 @@ void SteamPathPage::browse()
 
 bool SteamPathPage::isComplete() const
 {
-    QString chk = QDir::toNativeSeparators(cbDirectory->currentText());
+    QString chk = cbDirectory->currentText();
     if (chk.isEmpty())
         return false;
     if (!QDir(chk).exists())
         return false;
-    return QDir(QDir::toNativeSeparators(chk + "/config")).exists();
+    if (!QDir(chk + "/userdata").exists())
+        return false;
+    return QDir(chk + "/config").exists();
 }

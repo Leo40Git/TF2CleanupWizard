@@ -1,5 +1,6 @@
 #include "warningpage.h"
 
+#include <QLabel>
 #include <QVBoxLayout>
 
 WarningPage::WarningPage(QWidget *parent) : QWizardPage(parent)

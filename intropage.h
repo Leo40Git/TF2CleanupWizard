@@ -2,7 +2,6 @@
 #define INTROPAGE_H
 
 #include <QWizardPage>
-#include <QLabel>
 
 class IntroPage : public QWizardPage
 {
