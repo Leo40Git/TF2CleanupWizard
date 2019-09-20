@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QDeadlineTimer>
 
 class CleanupWorker : public QObject
 {
@@ -27,6 +28,7 @@ private:
     QString pathTF2;
     quint64 steamID;
     QTimer *timer;
+    QDeadlineTimer *deadline;
 };
 
 extern struct HWND__* hValidWnd;

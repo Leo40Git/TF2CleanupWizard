@@ -177,8 +177,8 @@ void CleanupWorker::deleteFilesAndValidate()
     } else
         emit log(QString("directory \"%1\" does not exist").arg(dir_cfg.absolutePath()));
     emit log("- revalidating TF2 installation -");
-    if (QDesktopServices::openUrl(QUrl("steam://validate/440"))) {
-        emit log("failed to start validation");
+    if (!QDesktopServices::openUrl(QUrl("steam://validate/440"))) {
+        emit log("failed to start validation - could not open link \"steam://validate/440\"");
         emit log("please validate your game manually later");
         emit setProgressLabel("...");
         emit setProgressFormat("%v/%m");
@@ -187,8 +187,20 @@ void CleanupWorker::deleteFilesAndValidate()
         doWork2();
     }
     emit log("waiting for validation progress window to open");
-    while (!hValidWnd)
+    deadline = new QDeadlineTimer(30000); // 30 seconds = half a minute
+    while (!hValidWnd) {
         EnumWindows(EnumWindowsCallback, 0);
+        if (deadline->hasExpired()) {
+            emit log("failed to start validation - timed out (validation window took >30 seconds to open");
+            emit log("please validate your game manually later");
+            emit setProgressLabel("...");
+            emit setProgressFormat("%v/%m");
+            emit setProgressMaximum(0);
+            emit setProgressValue(-1);
+            doWork2();
+            break;
+        }
+    }
     emit log("TF2 is now validating, please wait...");
     emit setProgressLabel("Validating Steam files");
     emit setProgressFormat("%p%");
@@ -196,6 +208,7 @@ void CleanupWorker::deleteFilesAndValidate()
     emit setProgressValue(0);
     timer->setInterval(500);
     timer->start();
+    deadline = new QDeadlineTimer(30000); // 30 seconds = half a minute
 }
 
 void CleanupWorker::timerFire()
@@ -208,16 +221,35 @@ void CleanupWorker::timerFire()
     nameBuf.resize(len + 1);
     GetWindowTextA(hValidWnd, nameBuf.data(), len + 1);
     int percent = QString::fromLatin1(nameBuf).mid(25).chopped(10).toInt();
+    if (deadline) {
+        if (percent == 0) {
+            if (deadline->hasExpired()) {
+                emit log("failed to start validation - timed out (progress was at 0% for >30 seconds");
+                emit log("please validate your game manually later");
+                emit setProgressLabel("...");
+                emit setProgressFormat("%v/%m");
+                emit setProgressMaximum(0);
+                emit setProgressValue(-1);
+                doWork2();
+                return;
+            }
+        } else {
+            delete deadline;
+            deadline = nullptr;
+        }
+    }
     emit setProgressValue(percent);
     if (percent == 100) {
         timer->stop();
+        delete timer;
+        timer = nullptr;
         Sleep(3000);
         CloseWindow(hValidWnd);
+        emit log("TF2 validated successfully");
         emit setProgressLabel("...");
         emit setProgressFormat("%v/%m");
         emit setProgressMaximum(0);
         emit setProgressValue(-1);
-        emit log("validation is done, moving on");
         doWork2();
         return;
     }
@@ -276,8 +308,8 @@ void CleanupWorker::launchWithCleanOptions()
 {
     emit log("launching game with the following launch options: \"-novid -autoconfig +host_writeconfig +mat_savechanges +quit\"");
     if (!QDesktopServices::openUrl(QUrl("steam://run/440//-novid%20-autoconfig%20%2Bhost_writeconfig%20%2Bmat_savechanges%20%2Bquit"))) {
-        emit log("failed to open game");
-        emit log("please run the game manually with the above launch options.");
+        emit log("failed to open game - could not open link \"steam://run/440//-novid%20-autoconfig%20%2Bhost_writeconfig%20%2Bmat_savechanges%20%2Bquit\"");
+        emit log("please run the game manually with the above launch options");
         return;
     }
     emit log("waiting for game to close");
