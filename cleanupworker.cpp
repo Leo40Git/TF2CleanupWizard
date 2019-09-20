@@ -45,7 +45,7 @@ BOOL CALLBACK EnumWindowsCallback(HWND hwnd, LPARAM param) {
         return TRUE;
     nameBuf.resize(len + 1);
     GetWindowTextA(hwnd, nameBuf.data(), len + 1);
-    if (QString::fromLatin1(nameBuf).startsWith("Validating Steam files - ")) {
+    if (QString::fromLocal8Bit(nameBuf).startsWith("Validating Steam files - ")) {
         hValidWnd = hwnd;
         return FALSE;
     }
@@ -192,7 +192,7 @@ void CleanupWorker::deleteFilesAndValidate()
         EnumWindows(EnumWindowsCallback, 0);
         if (deadline->hasExpired()) {
             emit log("failed to start validation - timed out (validation window took >30 seconds to open");
-            emit log("please validate your game manually later");
+            emit log("please validate TF2 manually later");
             emit setProgressLabel("...");
             emit setProgressFormat("%v/%m");
             emit setProgressMaximum(0);
@@ -220,12 +220,12 @@ void CleanupWorker::timerFire()
         return;
     nameBuf.resize(len + 1);
     GetWindowTextA(hValidWnd, nameBuf.data(), len + 1);
-    int percent = QString::fromLatin1(nameBuf).mid(25).chopped(10).toInt();
+    int percent = QString::fromLocal8Bit(nameBuf).mid(25).chopped(10).toInt();
     if (deadline) {
         if (percent == 0) {
             if (deadline->hasExpired()) {
                 emit log("failed to start validation - timed out (progress was at 0% for >30 seconds");
-                emit log("please validate your game manually later");
+                emit log("please cancel the validation process, and manually validate TF2 later");
                 emit setProgressLabel("...");
                 emit setProgressFormat("%v/%m");
                 emit setProgressMaximum(0);
@@ -306,13 +306,13 @@ void CleanupWorker::blankRemoteData()
 
 void CleanupWorker::launchWithCleanOptions()
 {
-    emit log("launching game with the following launch options: \"-novid -autoconfig +host_writeconfig +mat_savechanges +quit\"");
+    emit log("launching TF2 with the following launch options: \"-novid -autoconfig +host_writeconfig +mat_savechanges +quit\"");
     if (!QDesktopServices::openUrl(QUrl("steam://run/440//-novid%20-autoconfig%20%2Bhost_writeconfig%20%2Bmat_savechanges%20%2Bquit"))) {
-        emit log("failed to open game - could not open link \"steam://run/440//-novid%20-autoconfig%20%2Bhost_writeconfig%20%2Bmat_savechanges%20%2Bquit\"");
-        emit log("please run the game manually with the above launch options");
+        emit log("failed to open TF2 - could not open link \"steam://run/440//-novid%20-autoconfig%20%2Bhost_writeconfig%20%2Bmat_savechanges%20%2Bquit\"");
+        emit log("please run TF2 manually with the above launch options");
         return;
     }
-    emit log("waiting for game to close");
+    emit log("waiting for TF2 to close");
 
     // TIME TO SEARCH FOR THE GAME EXE, YAY
     HANDLE hGameProc = nullptr;
@@ -329,7 +329,7 @@ void CleanupWorker::launchWithCleanOptions()
         hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if (!hSnap) {
             DWORD err = GetLastError();
-            emit log(QString("failed while looking for game executable (hl2.exe), CreateToolhelp32Snapshot, errcode 0x%1").arg(QString::number(err, 16).toUpper()));
+            emit log(QString("failed while looking for TF2 executable (hl2.exe), CreateToolhelp32Snapshot, errcode 0x%1").arg(QString::number(err, 16).toUpper()));
             return;
         }
 
@@ -342,7 +342,11 @@ void CleanupWorker::launchWithCleanOptions()
                     continue;
                 CloseHandle(hGameProc);
                 // if the EXE names don't match, continue
+#ifdef UNICODE
                 QString str = QString::fromWCharArray(pe32.szExeFile);
+#else
+                QString str = QString::fromLocal8Bit(pe32.szExeFile);
+#endif
                 if (QString("hl2.exe").compare(str) != 0)
                     continue;
                 // we got a match! open the process and break this loop
@@ -358,5 +362,6 @@ void CleanupWorker::launchWithCleanOptions()
     DWORD exitCode = STILL_ACTIVE;
     while (exitCode == STILL_ACTIVE)
         GetExitCodeProcess(hGameProc, &exitCode);
-
+    CloseHandle(hGameProc);
+    emit log("TF2 has closed");
 }
