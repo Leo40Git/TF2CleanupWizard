@@ -6,6 +6,8 @@
 #include <QFileDialog>
 #include <QGridLayout>
 #include <QSettings>
+#include <QDesktopServices>
+#include <QUrl>
 
 SteamPathPage::SteamPathPage(QWidget *parent) : QWizardPage(parent)
 {
@@ -44,6 +46,8 @@ void SteamPathPage::initializePage()
         defDir = defDir.replace('\\', '/');
         cbDirectory->addItem(defDir);
     }
+
+    QDesktopServices::openUrl(QUrl("steam://open/main"));
 }
 
 void SteamPathPage::browse()
