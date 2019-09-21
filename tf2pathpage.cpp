@@ -10,8 +10,7 @@
 TF2PathPage::TF2PathPage(QWidget *parent) : QWizardPage(parent)
 {
     setTitle("Select TF2 Path");
-
-    QLabel *label = new QLabel("Please select your TF2 installation directory:", this);
+    setSubTitle("Please select your TF2 installation directory.");
 
     cbDirectory = new QComboBox(this);
     cbDirectory->setEditable(true);
@@ -22,7 +21,6 @@ TF2PathPage::TF2PathPage(QWidget *parent) : QWizardPage(parent)
     connect(button, &QPushButton::clicked, this, &TF2PathPage::browse);
 
     QGridLayout *layout = new QGridLayout(this);
-    layout->addWidget(label, 0, 0);
     layout->addWidget(cbDirectory, 1, 0);
     layout->addWidget(button, 1, 1);
 
@@ -32,6 +30,7 @@ TF2PathPage::TF2PathPage(QWidget *parent) : QWizardPage(parent)
 void TF2PathPage::initializePage()
 {
     QString defDir = QString("%1/steamapps/common/Team Fortress 2").arg(field("pathSteam").toString());
+    cbDirectory->clear();
     cbDirectory->addItem(defDir);
 }
 

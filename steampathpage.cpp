@@ -1,6 +1,5 @@
 #include "steampathpage.h"
 
-#include <QLabel>
 #include <QPushButton>
 #include <QDir>
 #include <QFileDialog>
@@ -12,8 +11,7 @@
 SteamPathPage::SteamPathPage(QWidget *parent) : QWizardPage(parent)
 {
     setTitle("Select Steam Path");
-
-    QLabel *label = new QLabel("Please select your Steam installation directory:", this);
+    setSubTitle("Please select your Steam installation directory.");
 
     cbDirectory = new QComboBox(this);
     cbDirectory->setEditable(true);
@@ -24,7 +22,6 @@ SteamPathPage::SteamPathPage(QWidget *parent) : QWizardPage(parent)
     connect(button, &QPushButton::clicked, this, &SteamPathPage::browse);
 
     QGridLayout *layout = new QGridLayout(this);
-    layout->addWidget(label, 0, 0);
     layout->addWidget(cbDirectory, 1, 0);
     layout->addWidget(button, 1, 1);
 
@@ -44,10 +41,9 @@ void SteamPathPage::initializePage()
     }
     if (!defDir.isEmpty()) {
         defDir = defDir.replace('\\', '/');
+        cbDirectory->clear();
         cbDirectory->addItem(defDir);
     }
-
-    QDesktopServices::openUrl(QUrl("steam://open/main"));
 }
 
 void SteamPathPage::browse()

@@ -16,6 +16,8 @@ CleanupWizard::CleanupWizard(QWidget *parent) : QWizard(parent)
     setOption(QWizard::HaveHelpButton, false);
     setWindowFlag(Qt::CustomizeWindowHint);
     setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+    setPixmap(WizardPixmap::LogoPixmap, QPixmap(":/icon.png"));
+    setWizardStyle(WizardStyle::ClassicStyle);
 
     addPage(new IntroPage);
     addPage(new SteamPathPage);

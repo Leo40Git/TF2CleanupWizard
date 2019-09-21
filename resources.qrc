@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>cfg_hashes.txt</file>
+        <file alias="icon.png">icon_48.png</file>
     </qresource>
 </RCC>
