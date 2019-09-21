@@ -19,6 +19,9 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
     lvAccounts->setEditTriggers(QListView::NoEditTriggers);
     lvAccounts->setIconSize(QSize(32, 32));
     lvAccounts->setEnabled(false);
+    QStandardItemModel *model = new QStandardItemModel(this);
+    model->appendRow(new QStandardItem("Loading user list, please wait..."));
+    lvAccounts->setModel(model);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(lvAccounts);
@@ -33,9 +36,6 @@ SelectUserPage::~SelectUserPage()
 void SelectUserPage::initializePage()
 {
     steamIDSet = false;
-    QStandardItemModel *model = new QStandardItemModel(this);
-    model->appendRow(new QStandardItem("Loading user list, please wait..."));
-    lvAccounts->setModel(model);
 
     UsersVDFParser *worker = new UsersVDFParser(field("pathSteam").toString());
     worker->moveToThread(&workerThread);
