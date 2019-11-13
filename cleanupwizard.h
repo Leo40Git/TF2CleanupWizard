@@ -12,8 +12,6 @@ public:
     void accept() override;
     quint64 steamID();
     void setSteamID(quint64 steamID);
-public slots:
-    void done(int result) override;
 private:
     quint64 m_steamID;
 signals:

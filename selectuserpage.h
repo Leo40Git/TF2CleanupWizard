@@ -3,6 +3,7 @@
 
 #include <QWizardPage>
 #include <QListView>
+#include <QPushButton>
 #include <QStandardItemModel>
 #include <QThread>
 
@@ -21,10 +22,12 @@ private:
     void parseErrorAndQuit(const QString &path, const QString &error);
     void accountSelected(const QModelIndex &current, const QModelIndex &previous);
     QListView *lvAccounts;
+    QPushButton *btnRefresh;
     bool steamIDSet;
     QThread workerThread;
 
 private slots:
+    void refreshUsers();
     void resultsReady(QStandardItemModel *model, QModelIndex defaultIndex);
 
 signals:

@@ -11,7 +11,7 @@
 SteamPathPage::SteamPathPage(QWidget *parent) : QWizardPage(parent)
 {
     setTitle("Select Steam Path");
-    setSubTitle("Please select your Steam installation directory.");
+    setSubTitle(property("backupFolderName").toString());
 
     cbDirectory = new QComboBox(this);
     cbDirectory->setEditable(true);

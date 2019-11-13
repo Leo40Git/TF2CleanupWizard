@@ -16,7 +16,7 @@ signals:
     void setProgressFormat(const QString &fmt);
     void done();
 public slots:
-    void doWork(const QString &pathSteam, const QString &pathTF2, quint64 steamID);
+    void doWork(const QString &pathSteam, const QString &pathTF2, quint64 steamID, const QString &backupFolderName);
 private slots:
     void timerFire();
 private:
@@ -27,6 +27,7 @@ private:
     QString pathSteam;
     QString pathTF2;
     quint64 steamID;
+    QString backupFolderName;
     QTimer *timer;
     QDeadlineTimer *deadline;
 };

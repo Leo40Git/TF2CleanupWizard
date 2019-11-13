@@ -37,9 +37,9 @@ void CleanupDialog::showEvent(QShowEvent *e)
     connect(worker, &CleanupWorker::setProgressMaximum, ui->progressBar, &QProgressBar::setMaximum);
     connect(worker, &CleanupWorker::setProgressFormat, ui->progressBar, &QProgressBar::setFormat);
     connect(this, &CleanupDialog::doWork, worker, &CleanupWorker::doWork);
-    workerThread.start();
     QDialog::showEvent(e);
-    emit doWork(pathSteam, pathTF2, steamID);
+    workerThread.start();
+    emit doWork(pathSteam, pathTF2, steamID, backupFolderName);
 }
 
 void CleanupDialog::onDone()
@@ -60,4 +60,9 @@ void CleanupDialog::setPathTF2(const QString &pathTF2)
 void CleanupDialog::setSteamID(quint64 steamID)
 {
     this->steamID = steamID;
+}
+
+void CleanupDialog::setBackupFolderName(const QString &value)
+{
+    backupFolderName = value;
 }

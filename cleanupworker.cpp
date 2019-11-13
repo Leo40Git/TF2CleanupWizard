@@ -13,11 +13,12 @@
 #include "tlhelp32.h"
 #include "psapi.h"
 
-void CleanupWorker::doWork(const QString &pathSteam, const QString &pathTF2, quint64 steamID)
+void CleanupWorker::doWork(const QString &pathSteam, const QString &pathTF2, quint64 steamID, const QString &backupFolderName)
 {
     this->pathSteam = pathSteam;
     this->pathTF2 = pathTF2;
     this->steamID = steamID;
+    this->backupFolderName = backupFolderName;
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &CleanupWorker::timerFire);
     emit log(" == REMOVING FILES AND VALIDATING == ");
@@ -60,17 +61,17 @@ void CleanupWorker::deleteFilesAndValidate()
     QDir dir_custom(QString("%1/tf/custom").arg(pathTF2));
     if (dir_custom.exists()) {
         // backup and remove tf/custom
+        QDir dir_custom_backup(QString("%1/tf/custom_backup/%2").arg(pathTF2).arg(backupFolderName));
         emit log(QString("- backing up files from \"%1\" -").arg(dir_custom.absolutePath()));
-        QDir dir_custom_backup(pathTF2 + "/tf/custom_backup");
         if (dir_custom_backup.exists())
             dir_custom_backup.removeRecursively();
-        emit log(QString("creating directory \"%1\"").arg(dir_custom_backup.absolutePath()));
+        emit log(QString("backing up to \"%1\"").arg(dir_custom_backup.absolutePath()));
         dir_custom_backup.mkpath(".");
         entryList = dir_custom.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
         emit setProgressLabel("Backing up custom assets - subdirectories");
+        emit setProgressFormat("%v/%m");
         emit setProgressMaximum(entryList.size());
         emit setProgressValue((progress = 0));
-        progress = 0;
         foreach (QString subdirName, entryList) {
             if (QString::compare("workshop", subdirName) == 0) {
                 emit log(QString("ignoring subdirectory \"workshop\""));
@@ -84,13 +85,14 @@ void CleanupWorker::deleteFilesAndValidate()
                 dir_custom.removeRecursively();
                 dir_custom.cd("../..");
             }
-            emit log(QString("moving subdirectory \"%1\" to \"%2\"").arg(subdirName).arg(dir_custom_backup.absolutePath()));
+            emit log(QString("backing up subdirectory \"%1\"").arg(subdirName));
             dir_tf.rename(QString("%1/%2").arg(dir_custom.path()).arg(subdirName), QString("%1/%2").arg(dir_custom_backup.path()).arg(subdirName));
             emit setProgressValue(++progress);
         }
         QString custom_readme_hash = "063bd9b29a9c10f4a59e5eacb00fc8a9c20fc3d756194b78ca9e163568916715";
         entryList = dir_custom.entryList(QDir::Files);
         emit setProgressLabel("Backing up custom assets - files");
+        emit setProgressFormat("%v/%m");
         emit setProgressMaximum(entryList.size());
         emit setProgressValue((progress = 0));
         foreach (QString fileName, entryList) {
@@ -111,7 +113,7 @@ void CleanupWorker::deleteFilesAndValidate()
                 emit setProgressValue(++progress);
                 continue;
             }
-            emit log(QString("moving \"%1\" to \"%2\"").arg(fileName).arg(dir_custom_backup.absolutePath()));
+            emit log(QString("backing up file \"%1\"").arg(fileName));
             dir_tf.rename(QString("%1/%2").arg(dir_custom.path()).arg(fileName), QString("%1/%2").arg(dir_custom_backup.path()).arg(fileName));
             emit setProgressValue(++progress);
         }
@@ -131,23 +133,25 @@ void CleanupWorker::deleteFilesAndValidate()
         }
         cfgHashesFile.close();
         // backup and remove tf/cfg
+        QDir dir_cfg_backup(QString("%1/tf/cfg_backup/%2").arg(pathTF2).arg(backupFolderName));
         emit log(QString("- backing up files from \"%1\" -").arg(dir_cfg.absolutePath()));
-        QDir dir_cfg_backup(pathTF2 + "/tf/cfg_backup");
         if (dir_cfg_backup.exists())
             dir_cfg_backup.removeRecursively();
-        emit log(QString("creating directory \"%1\"").arg(dir_cfg_backup.absolutePath()));
+        emit log(QString("backing up to \"%1\"").arg(dir_cfg_backup.absolutePath()));
         dir_cfg_backup.mkpath(".");
         entryList = dir_cfg.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
         emit setProgressLabel("Backing up configuration scripts - subdirectories");
+        emit setProgressFormat("%v/%m");
         emit setProgressMaximum(entryList.size());
         emit setProgressValue((progress = 0));
         foreach (QString subdirName, entryList) {
-            emit log(QString("moving subdirectory \"%1\" to \"%2\"").arg(subdirName).arg(dir_cfg_backup.absolutePath()));
+            emit log(QString("backing up subdirectory \"%1\"").arg(subdirName));
             dir_tf.rename(QString("%1/%2").arg(dir_cfg.path()).arg(subdirName), QString("%1/%2").arg(dir_cfg_backup.path()).arg(subdirName));
             emit setProgressValue(++progress);
         }
         entryList = dir_cfg.entryList(QDir::Files);
         emit setProgressLabel("Backing up configuration scripts - files");
+        emit setProgressFormat("%v/%m");
         emit setProgressMaximum(entryList.size());
         emit setProgressValue((progress = 0));
         foreach (QString fileName, entryList) {
@@ -157,6 +161,11 @@ void CleanupWorker::deleteFilesAndValidate()
                 continue;
             }
             if (cfgHashes.contains(fileName)) {
+                if (cfgHashes[fileName].compare("$ignore", Qt::CaseInsensitive) == 0) {
+                    emit log(QString("ignoring distributed file \"%1\"").arg(fileName));
+                    emit setProgressValue(++progress);
+                    continue;
+                }
                 QFile file(dir_cfg.absoluteFilePath(fileName));
                 file.open(QFile::ReadOnly);
                 QByteArray data = file.readAll();
@@ -168,7 +177,7 @@ void CleanupWorker::deleteFilesAndValidate()
                     continue;
                 }
             }
-            emit log(QString("moving \"%1\" to \"%2\"").arg(fileName).arg(dir_cfg_backup.absolutePath()));
+            emit log(QString("backing up file \"%1\"").arg(fileName));
             dir_tf.rename(QString("%1/%2").arg(dir_cfg.path()).arg(fileName), QString("%1/%2").arg(dir_cfg_backup.path()).arg(fileName));
             emit setProgressValue(++progress);
         }
@@ -280,19 +289,29 @@ void CleanupWorker::blankRemoteData()
         emit log(QString("directory \"%1\" does not exist").arg(dir_userdata.absolutePath()));
         return;
     }
-    emit log(QString("clearing Steam Cloud files in \"%1\"").arg(dir_userdata.absolutePath()));
+    int progress;
     QStringList entryList = dir_userdata.entryList(QDir::Files);
-    emit setProgressLabel("Clearing Steam Cloud configuration files");
+    emit setProgressFormat("%v/%m");
     emit setProgressMaximum(entryList.size());
-    int progress = 0;
-    emit setProgressValue(0);
+    emit log(QString(" - backing up Steam Cloud files in \"%1\" -").arg(dir_userdata.absolutePath()));
+    QDir dir_userdata_backup(QString("%1/../cfg_backup/%2").arg(dir_userdata.absolutePath()).arg(backupFolderName));
+    if (dir_userdata_backup.exists())
+        dir_userdata_backup.removeRecursively();
+    dir_userdata_backup.mkpath(".");
+    emit log(QString("backing up to \"%2\"").arg(dir_userdata_backup.absolutePath()));
+    emit setProgressLabel("Backing up configuration files");
+    emit setProgressValue((progress = 0));
     foreach (QString fileName, entryList) {
         QFile file(dir_userdata.absoluteFilePath(fileName));
-        if (file.size() == 0) {
-            emit log(QString("file \"%1\" is already empty").arg(fileName));
-            emit setProgressValue(++progress);
-            continue;
-        }
+        emit log(QString("backing up file \"%1\"").arg(fileName));
+        file.copy(QString("%1/%2").arg(dir_userdata_backup.absolutePath()).arg(fileName));
+        emit setProgressValue(++progress);
+    }
+    emit log(QString("clearing Steam Cloud files in \"%1\"").arg(dir_userdata.absolutePath()));
+    emit setProgressLabel("Clearing Steam Cloud configuration files");
+    emit setProgressValue((progress = 0));
+    foreach (QString fileName, entryList) {
+        QFile file(dir_userdata.absoluteFilePath(fileName));
         emit log(QString("clearing file \"%1\"").arg(fileName));
         file.open(QFile::WriteOnly | QFile::Truncate);
         file.close();
@@ -314,11 +333,18 @@ void CleanupWorker::launchWithCleanOptions()
     }
     emit log("waiting for TF2 to close");
 
+    deadline = new QDeadlineTimer(30000); // 30 seconds = half a minute
+
     // TIME TO SEARCH FOR THE GAME EXE, YAY
     HANDLE hGameProc = nullptr;
     bool match = false;
 
     while (!match) {
+        if (deadline->hasExpired()) {
+            emit log("failed while looking for TF2 executable (hl2.exe) - timed out (couldn't find executable for >30 seconds");
+            break;
+        }
+
         // setup to loop through process snapshot
         HANDLE hSnap = nullptr;
         PROCESSENTRY32 pe32;
@@ -329,8 +355,8 @@ void CleanupWorker::launchWithCleanOptions()
         hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if (!hSnap) {
             DWORD err = GetLastError();
-            emit log(QString("failed while looking for TF2 executable (hl2.exe), CreateToolhelp32Snapshot, errcode 0x%1").arg(QString::number(err, 16).toUpper()));
-            return;
+            emit log(QString("failed while looking for TF2 executable (hl2.exe) - CreateToolhelp32Snapshot, errcode 0x%1").arg(QString::number(err, 16).toUpper()));
+            break;
         }
 
         // loop through and grab the matching EXE
@@ -359,9 +385,14 @@ void CleanupWorker::launchWithCleanOptions()
         CloseHandle(hSnap);
     }
 
-    DWORD exitCode = STILL_ACTIVE;
-    while (exitCode == STILL_ACTIVE)
-        GetExitCodeProcess(hGameProc, &exitCode);
-    CloseHandle(hGameProc);
-    emit log("TF2 has closed");
+    delete deadline;
+    deadline = nullptr;
+
+    if (match) {
+        DWORD exitCode = STILL_ACTIVE;
+        while (exitCode == STILL_ACTIVE)
+            GetExitCodeProcess(hGameProc, &exitCode);
+        CloseHandle(hGameProc);
+        emit log("TF2 has closed");
+    }
 }

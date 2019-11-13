@@ -23,8 +23,12 @@ SelectUserPage::SelectUserPage(QWidget *parent) : QWizardPage(parent)
     model->appendRow(new QStandardItem("Loading user list, please wait..."));
     lvAccounts->setModel(model);
 
+    btnRefresh = new QPushButton("Refresh", this);
+    connect(btnRefresh, &QPushButton::clicked, this, &SelectUserPage::refreshUsers);
+
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(lvAccounts);
+    layout->addWidget(btnRefresh);
 }
 
 SelectUserPage::~SelectUserPage()
@@ -36,15 +40,7 @@ SelectUserPage::~SelectUserPage()
 void SelectUserPage::initializePage()
 {
     steamIDSet = false;
-
-    UsersVDFParser *worker = new UsersVDFParser(field("pathSteam").toString());
-    worker->moveToThread(&workerThread);
-    connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
-    connect(worker, &UsersVDFParser::resultsReady, this, &SelectUserPage::resultsReady);
-    connect(worker, &UsersVDFParser::error, this, &SelectUserPage::parseErrorAndQuit);
-    connect(this, &SelectUserPage::parseUsersVDF, worker, &UsersVDFParser::doWork);
-    workerThread.start();
-    emit parseUsersVDF();
+    refreshUsers();
 }
 
 bool SelectUserPage::isComplete() const
@@ -54,7 +50,7 @@ bool SelectUserPage::isComplete() const
 
 void SelectUserPage::parseErrorAndQuit(const QString &path, const QString &error)
 {
-    QMessageBox::critical(this, "Failed to parse loginusers.vdf", "Could not parse \"" + path + "\":\n" + error + "\nInstaller will now close. No changes have been done.");
+    QMessageBox::critical(this, "Failed to parse loginusers.vdf", QString("Could not parse \"%1\":\n%2\nThe wizard will now close. No changes have been made to your TF2 installation.").arg(path).arg(error));
     QApplication::quit();
 }
 
@@ -62,9 +58,28 @@ void SelectUserPage::accountSelected(const QModelIndex &current, const QModelInd
 {
     (void)previous;
     quint64 steamID = static_cast<quint64>(current.data(Qt::UserRole + 1).toULongLong());
-    wizard()->setProperty("steamID", steamID);
+    setProperty("steamID", steamID);
     steamIDSet = true;
     emit completeChanged();
+}
+
+void SelectUserPage::refreshUsers()
+{
+    steamIDSet = false;
+    emit completeChanged();
+    lvAccounts->setEnabled(false);
+    QStandardItemModel *model = new QStandardItemModel(this);
+    model->appendRow(new QStandardItem("Loading user list, please wait..."));
+    lvAccounts->setModel(model);
+    btnRefresh->setEnabled(false);
+    UsersVDFParser *worker = new UsersVDFParser(field("pathSteam").toString());
+    worker->moveToThread(&workerThread);
+    connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(worker, &UsersVDFParser::resultsReady, this, &SelectUserPage::resultsReady);
+    connect(worker, &UsersVDFParser::error, this, &SelectUserPage::parseErrorAndQuit);
+    connect(this, &SelectUserPage::parseUsersVDF, worker, &UsersVDFParser::doWork);
+    workerThread.start();
+    emit parseUsersVDF();
 }
 
 void SelectUserPage::resultsReady(QStandardItemModel *model, QModelIndex defaultIndex)
@@ -77,4 +92,5 @@ void SelectUserPage::resultsReady(QStandardItemModel *model, QModelIndex default
     }
     lvAccounts->setItemDelegate(new HTMLDelegate);
     lvAccounts->setEnabled(true);
+    btnRefresh->setEnabled(true);
 }
